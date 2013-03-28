@@ -55,7 +55,7 @@ module.exports = function(grunt) {
         tasks: ['jshint:gruntfile']
       },
       watch_src: {
-        files: 'src/**',
+        files: 'src/**/*.*',
         events: true
       }
     }

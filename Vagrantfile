@@ -95,6 +95,11 @@ if [ ! -f /usr/bin/grunt ]; then
 fi
 echo "grunt:\t$(grunt --version)"
 
+if [ ! -f /usr/bin/unison ]; then
+  sudo apt-get install unison -y
+fi
+echo "unison:\t$(unison -version)"
+
 echo "Clean up..."
 sudo apt-get autoremove -y | tail -n 1
 rm /home/vagrant/VBoxGuestAdditions_4.2.10.iso
@@ -116,6 +121,9 @@ Vagrant.configure("2") do |config|
   config.vm.box_url = "http://files.vagrantup.com/precise64.box"
 
   config.vm.network :forwarded_port, guest: 4567, host: 4567
+
+  config.sync.host_folder = "src/"  #relative to the folder your Vagrantfile is in
+  config.sync.guest_folder = "src/" #relative to the vagrant home folder -> /home/vagrant
 
   config.vm.provider :virtualbox do |v|
     v.customize ["modifyvm", :id, "--memory", "1024"]

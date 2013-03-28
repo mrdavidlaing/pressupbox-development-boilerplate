@@ -31,8 +31,10 @@ Vagrant version 1.1.2
 
 1.  `vagrant ssh` -> You're now in a sandbox environment on the VM which simulates the Stackato deployment environment.  From inside your vagrant ssh terminal you can:
     1.  `grunt run` -> This will compile your app and launch a dev server that you can access at [http://localhost:4567](http://localhost:4567) on your Dev machine
-    1.  TODO Any changes you make on your dev machine will be automatically copied to your vagrant VM.  Currenty you must run
-`rsync -a --exclude='.git*' --exclude='.vagrant' --exclude='.DS_Store' /vagrant/ /home/vagrant/` from your vagrant ssh terminal after each file change
+1. You can use the `vagrant-unison` plugin to automatically sync file changes from the files on your host into the VM.
+    1. Install: `vagrant plugin install vagrant-unison`
+    1. Ensure you have specifed configured the folders to sync in your Vagrantfile using `config.sync.host_folder` and `config.sync.guest_folder`
+    1. In a separate terminal, run `vagrant sync`
 
 ## Concepts involved
 
