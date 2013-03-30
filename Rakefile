@@ -1,3 +1,6 @@
+require 'rake'
+require 'rake/clean'
+
 # Immediately sync all stdout so that tools like buildbot can
 # immediately load in the output.
 $stdout.sync = true
@@ -13,14 +16,15 @@ task :dev_server do
 	system 'cd dist/ && bin/start.sh 4567 Verbose'
 end
 
-task :clean do
-	Dir.delete("#{BASE_DIR}/dist")
-end
+CLEAN.include("#{BASE_DIR}/dist/**")
+SRC=FileList.new('src/**/*')
 
 task :copy do
-	Dir.glob('src/**/*.*').each do |file|
+	SRC.each do |file|
+		next if FileTest.directory?(file)
+
 	  dir, filename = File.dirname(file), File.basename(file)
-	  dest = File.join("#{BASE_DIR}/dist", dir)
+	  dest = File.join("#{BASE_DIR}/dist", dir.sub(/^src\//,''))
 	  FileUtils.mkdir_p(dest)
 	  FileUtils.copy_file(file, File.join(dest,filename))
 	end
@@ -37,7 +41,7 @@ task :refresh_buildpack do
    end
 end
 
-task :build => [:refresh_buildpack] do 
+task :build => [:refresh_buildpack, :copy] do 
 	system "#{BASE_DIR}/buildpack/bin/compile #{BASE_DIR}/dist"
 end 
 
