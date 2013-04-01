@@ -1,22 +1,24 @@
 $script = <<SCRIPT#!/bin/bash
 
-if [ ! -f /usr/bin/curl ]; then
-  echo "Installing curl"
-  sudo apt-get install curl -y
-fi
-echo "curl:\t$(curl --version)" | head -n 1
-
-if [ ! -d /opt/VBoxGuestAdditions-4.2.10 ]; then
+if [ ! -f /usr/bin/cloud-init ] && [ ! -d /opt/VBoxGuestAdditions-4.2.10 ]; then
   echo "Upgrading VBoxGuestAdditions"
-  curl --location http://download.virtualbox.org/virtualbox/4.2.10/VBoxGuestAdditions_4.2.10.iso > /home/vagrant/VBoxGuestAdditions_4.2.10.iso
-  sudo mount /home/vagrant/VBoxGuestAdditions_4.2.10.iso -o loop /mnt
+  curl --location http://download.virtualbox.org/virtualbox/4.2.10/VBoxGuestAdditions_4.2.10.iso > /tmp/VBoxGuestAdditions_4.2.10.iso
+  sudo mount /tmp/VBoxGuestAdditions_4.2.10.iso -o loop /mnt
   sudo apt-get install build-essential module-assistant linux-headers-$(uname -r) -y
   sudo sh /mnt/VBoxLinuxAdditions.run --nox11
+  sudo rm /tmp/VBoxGuestAdditions_4.2.10.iso
+  sudo rm ~/postinstall.sh
   echo "=-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=-=-="
   echo " VBoxGuestAdditions updated.  Please run: vagrant halt && vagrant up "
   echo "=-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=-=-="
   exit 1
 fi 
+
+if [ ! -f /usr/bin/curl ]; then
+  echo "Installing curl"
+  sudo apt-get install curl -y
+fi
+echo "curl:\t$(curl --version)" | head -n 1
 
 if [[ ! "$(ruby --version)" =~ "ruby 1.9.3" ]]; then
   echo "Upgrading ruby to 1.9.1"
@@ -56,14 +58,14 @@ if [ ! -f /usr/bin/git ]; then
 fi
 echo "git:\t$(git --version)"
 
-if [[ ! "$(php --version)" =~ "PHP 5.4" ]]; then
-  echo "Installing PHP5"
-  sudo apt-get install python-software-properties -y
-  sudo add-apt-repository ppa:ondrej/php5 -y
-  sudo apt-get update
-  sudo apt-get install php5 php5-mysql -y
-fi
-echo "php:\t$(php -v)" | head -n 1
+# if [[ ! "$(php --version)" =~ "PHP 5.4" ]]; then
+#   echo "Installing PHP5"
+#   sudo apt-get install python-software-properties -y
+#   sudo add-apt-repository ppa:ondrej/php5 -y
+#   sudo apt-get update
+#   sudo apt-get install php5 php5-mysql -y
+# fi
+#echo "php:\t$(php -v)" | head -n 1
 
 if [[ ! "$(node --version)" =~ "v0.10" ]]; then
   echo "Installing nodejs"
@@ -74,11 +76,11 @@ if [[ ! "$(node --version)" =~ "v0.10" ]]; then
 fi
 echo "node:\t$(node -v)"
 
-if [ ! -f /usr/bin/wp ]; then
-  echo "Installing wp-cli"
-  sudo curl http://wp-cli.org/packages/phar/wp-cli.phar > /usr/bin/wp
-  chmod +x /usr/bin/wp
-fi
+# if [ ! -f /usr/bin/wp ]; then
+#   echo "Installing wp-cli"
+#   sudo curl http://wp-cli.org/packages/phar/wp-cli.phar > /usr/bin/wp
+#   chmod +x /usr/bin/wp
+#fi
 
 if [ ! -f /usr/bin/stackato ]; then
     sudo curl -k --location -o /tmp/stackato.zip https://api.stackato.cil.stack.me/static/stackato-1.6.1-linux-glibc2.3-x86_64.zip 
@@ -91,7 +93,7 @@ echo "stackato:\t$(stackato --version)"
 
 if [ ! -f /usr/bin/grunt ]; then
   sudo npm install -g grunt-cli
-  sudo chown -R vagrant:vagrant /home/vagrant
+  sudo chown -R vagrant:vagrant ~/
 fi
 echo "grunt:\t$(grunt --version)"
 
@@ -102,11 +104,9 @@ echo "unison:\t$(unison -version)"
 
 echo "Clean up..."
 sudo apt-get autoremove -y | tail -n 1
-rm /home/vagrant/VBoxGuestAdditions_4.2.10.iso
-rm /home/vagrant/postinstall.sh
 
 echo "Copying host source files into place"
-rsync -a --exclude='.git*' --exclude='.vagrant' --exclude='.DS_Store' /vagrant/ /home/vagrant/
+rsync -a --exclude='.git*' --exclude='.vagrant' --exclude='.DS_Store' /vagrant/ ~/
 
 echo "Configuring build dependancies"
 npm install
@@ -123,12 +123,23 @@ Vagrant.configure("2") do |config|
   config.vm.network :forwarded_port, guest: 4567, host: 4567
 
   config.sync.host_folder = "src/"  #relative to the folder your Vagrantfile is in
-  config.sync.guest_folder = "src/" #relative to the vagrant home folder -> /home/vagrant
+  config.sync.guest_folder = "src/" #relative to the vagrant home folder -> ~/
 
   config.vm.provider :virtualbox do |v|
     v.customize ["modifyvm", :id, "--memory", "1024"]
   end
 
+  config.vm.provider :aws do |aws|
+    aws.access_key_id = ENV['AWS_ACCESS_KEY_ID']
+    aws.secret_access_key = ENV['AWS_SECRET_ACCESS_KEY']
+    aws.keypair_name = "labs-commander"
+    aws.ssh_private_key_path = "~/.ssh/labs-commander.pem"
+
+    aws.region = "eu-west-1"
+    aws.ami = "ami-1ef5ff6a" #eu-west-1 12.04 LTS amd64
+    aws.instance_type = "t1.micro"
+    aws.ssh_username = "ubuntu"
+  end
+
   config.vm.provision :shell, :inline => $script
 end
-
