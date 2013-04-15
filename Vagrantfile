@@ -73,13 +73,13 @@ echo "php:\t$(php -v)" | head -n 1
 grep remote_connect_back /etc/php5/conf.d/20-xdebug.ini > /dev/null 2>&1
 if [ "${1}" -ne "0" ]; then
   sudo apt-get install php5-xdebug
-  cat <<CONFIG_BLOCK
+  sudo tee -a /etc/php5/conf.d/20-xdebug.ini <<CONFIG_BLOCK
 xdebug.remote_connect_back = 1
 xdebug.remote_autostart = 1
 xdebug.remote_enable = 1
-CONFIG_BLOCK | sudo tee -a /etc/php5/conf.d/20-xdebug.ini
+CONFIG_BLOCK
 fi
-
+echo "xdebug:\t$(php -v | grep Xdebug)"
 
 if [ ! -f /usr/bin/wp ]; then
   echo "Installing wp-cli"
@@ -122,6 +122,7 @@ Vagrant.configure("2") do |config|
   config.vm.box_url = "https://s3-eu-west-1.amazonaws.com/ci-vagrantboxes/pressupbox-development-boilerplate-20130327.box"
 
   config.vm.network :forwarded_port, guest: 4567, host: 4567
+  config.vm.network :forwarded_port, guest: 9222, host: 9222
 
   config.vm.provider :virtualbox do |v|
     v.customize ["modifyvm", :id, "--memory", "512"]
