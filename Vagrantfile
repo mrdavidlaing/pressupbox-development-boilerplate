@@ -110,6 +110,12 @@ if [ ! -f /usr/bin/unison ]; then
 fi
 echo "unison:\t$(unison -version)"
 
+#set environment variables
+if ! grep -qe "pressupbox-boiler-plate env vars" "/etc/profile"; then
+  echo -e "#pressupbox-boiler-plate env vars\nexport HHVM_LIB_PATH=/home/vagrant/dist/runtimes/hiphop-php/bin/" >> /etc/profile
+fi
+#end set environment variables
+
 echo "Clean up..."
 sudo apt-get autoremove -y | tail -n 1
 rm /home/vagrant/VBoxGuestAdditions_4.2.10.iso
